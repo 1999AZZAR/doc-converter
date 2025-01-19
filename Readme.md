@@ -118,7 +118,7 @@ This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) f
 
 ## Contact
 
-For questions, feedback, or support, please open an issue on the [GitHub repository](https://github.com/1999AZZAR/doc-converter/issue) or contact the maintainer directly.
+For questions, feedback, or support, please open an issue on the [GitHub repository](https://github.com/1999AZZAR/doc-converter/issues) or contact the maintainer directly.
 
 ---
 
