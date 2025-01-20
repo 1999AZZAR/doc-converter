@@ -30,17 +30,17 @@ class FileConverterApp(QWidget):
         self.set_dark_theme()  # Apply dark theme
 
     def initUI(self):
-        self.setWindowTitle("File Converter")
+        self.setWindowTitle("Frea File Converter")
         self.setGeometry(100, 100, 800, 600)
 
         # Main layout
         main_layout = QGridLayout()
 
         # Title Label
-        self.title_label = QLabel("File Converter", self)
-        self.title_label.setFont(QFont("Arial", 18, QFont.Weight.Bold))
-        self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        main_layout.addWidget(self.title_label, 0, 0, 1, 2)
+        # self.title_label = QLabel("FFC (Frea File Converter)", self)
+        # self.title_label.setFont(QFont("Arial", 18, QFont.Weight.Bold))
+        # self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # main_layout.addWidget(self.title_label, 0, 0, 1, 2)
 
         # Selected Files List
         self.selected_files_label = QLabel("Selected Files:", self)
