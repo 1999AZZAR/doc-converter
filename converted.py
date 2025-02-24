@@ -15,12 +15,69 @@ from PyQt6.QtWidgets import (
     QProgressBar,
     QTextEdit,
     QGridLayout,
+    QMessageBox,
 )
 from PyQt6.QtGui import QFont, QIcon, QPalette, QColor
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QMimeData
 
 # Suppress KDE-related warnings
 os.environ["QT_LOGGING_RULES"] = "*.debug=false;qt.*.debug=false"
+
+# Supported file formats
+SUPPORTED_INPUT_FORMATS = [
+    "md",
+    "docx",
+    "odt",
+    "latex",
+    "html",
+    "txt",
+    "rtf",
+    "epub",
+]  # Removed PDF as input
+SUPPORTED_OUTPUT_FORMATS = [
+    "md",
+    "docx",
+    "odt",
+    "latex",
+    "html",
+    "txt",
+    "rtf",
+    "epub",
+    "pdf",
+]
+
+
+class DragDropListWidget(QListWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setAcceptDrops(True)
+        self.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+
+    def dragMoveEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+
+    def dropEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+            for url in event.mimeData().urls():
+                if url.isLocalFile():
+                    file_path = url.toLocalFile()
+                    file_extension = os.path.splitext(file_path)[1][
+                        1:
+                    ].lower()  # Get file extension
+                    if file_extension in SUPPORTED_INPUT_FORMATS:
+                        self.addItem(QListWidgetItem(file_path))
+                    else:
+                        QMessageBox.warning(
+                            self.parent(),
+                            "Unsupported File",
+                            f"The file '{os.path.basename(file_path)}' is not supported.",
+                        )
 
 
 class FileConverterApp(QWidget):
@@ -36,18 +93,11 @@ class FileConverterApp(QWidget):
         # Main layout
         main_layout = QGridLayout()
 
-        # Title Label
-        # self.title_label = QLabel("FFC (Frea File Converter)", self)
-        # self.title_label.setFont(QFont("Arial", 18, QFont.Weight.Bold))
-        # self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        # main_layout.addWidget(self.title_label, 0, 0, 1, 2)
-
         # Selected Files List
         self.selected_files_label = QLabel("Selected Files:", self)
         main_layout.addWidget(self.selected_files_label, 1, 0, 1, 2)
 
-        self.file_list = QListWidget(self)
-        self.file_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
+        self.file_list = DragDropListWidget(self)
         main_layout.addWidget(self.file_list, 2, 0, 1, 2)
 
         # Add and Remove Buttons
@@ -66,51 +116,43 @@ class FileConverterApp(QWidget):
 
         main_layout.addLayout(button_layout, 3, 0, 1, 2)
 
-        # Input and Output Format Selection
-        self.input_format_label = QLabel("Input Format:", self)
-        main_layout.addWidget(self.input_format_label, 4, 0)
-
-        self.input_format_combo = QComboBox(self)
-        self.input_format_combo.addItems(["md", "docx", "odt", "latex"])
-        self.input_format_combo.setToolTip("Select the input format of the files")
-        main_layout.addWidget(self.input_format_combo, 4, 1)
-
+        # Output Format Selection (Input format is auto-detected)
         self.output_format_label = QLabel("Output Format:", self)
-        main_layout.addWidget(self.output_format_label, 5, 0)
+        main_layout.addWidget(self.output_format_label, 4, 0)
 
         self.output_format_combo = QComboBox(self)
-        self.output_format_combo.addItems(["md", "docx", "odt", "latex"])
+        self.output_format_combo.addItems(SUPPORTED_OUTPUT_FORMATS)
         self.output_format_combo.setToolTip("Select the output format for conversion")
-        main_layout.addWidget(self.output_format_combo, 5, 1)
+        main_layout.addWidget(self.output_format_combo, 4, 1)
 
         # File Preview Section
         self.preview_label = QLabel("File Preview:", self)
-        main_layout.addWidget(self.preview_label, 6, 0, 1, 2)
+        main_layout.addWidget(self.preview_label, 5, 0, 1, 2)
 
         self.preview_text = QTextEdit(self)
         self.preview_text.setReadOnly(True)
         self.preview_text.setPlaceholderText(
             "Preview of the selected file will appear here."
         )
-        main_layout.addWidget(self.preview_text, 7, 0, 1, 2)
+        main_layout.addWidget(self.preview_text, 6, 0, 1, 2)
 
         # Progress Bar
         self.progress_bar = QProgressBar(self)
         self.progress_bar.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.progress_bar.setVisible(False)
-        main_layout.addWidget(self.progress_bar, 8, 0, 1, 2)
+        main_layout.addWidget(self.progress_bar, 7, 0, 1, 2)
 
         # Status Label
         self.status_label = QLabel("", self)
         self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        main_layout.addWidget(self.status_label, 9, 0, 1, 2)
+        main_layout.addWidget(self.status_label, 8, 0, 1, 2)
 
         # Convert Button
         self.btn_convert = QPushButton("Convert", self)
         self.btn_convert.setIcon(QIcon.fromTheme("document-save"))
         self.btn_convert.setToolTip("Convert selected files")
         self.btn_convert.clicked.connect(self.convert_files)
-        main_layout.addWidget(self.btn_convert, 10, 0, 1, 2)
+        main_layout.addWidget(self.btn_convert, 9, 0, 1, 2)
 
         self.setLayout(main_layout)
 
@@ -123,13 +165,23 @@ class FileConverterApp(QWidget):
             self,
             "Select Files",
             "",
-            "All Files (*);;Markdown Files (*.md);;Word Files (*.docx);;OpenDocument Files (*.odt);;LaTeX Files (*.tex)",
+            "All Files (*);;Markdown Files (*.md);;Word Files (*.docx);;OpenDocument Files (*.odt);;LaTeX Files (*.tex);;HTML Files (*.html);;Text Files (*.txt);;RTF Files (*.rtf);;EPUB Files (*.epub)",
             options=options,
         )
         if files:
             for file in files:
-                item = QListWidgetItem(file)
-                self.file_list.addItem(item)
+                file_extension = os.path.splitext(file)[1][
+                    1:
+                ].lower()  # Get file extension
+                if file_extension in SUPPORTED_INPUT_FORMATS:
+                    item = QListWidgetItem(file)
+                    self.file_list.addItem(item)
+                else:
+                    QMessageBox.warning(
+                        self,
+                        "Unsupported File",
+                        f"The file '{os.path.basename(file)}' is not supported.",
+                    )
 
     def remove_file(self):
         selected_items = self.file_list.selectedItems()
@@ -154,7 +206,6 @@ class FileConverterApp(QWidget):
             self.status_label.setText("Please select at least one file.")
             return
 
-        input_format = self.input_format_combo.currentText()
         output_format = self.output_format_combo.currentText()
 
         # Show progress bar
@@ -164,6 +215,9 @@ class FileConverterApp(QWidget):
 
         for i in range(self.file_list.count()):
             file = self.file_list.item(i).text()
+            file_extension = os.path.splitext(file)[1][1:].lower()  # Get file extension
+            input_format = file_extension  # Auto-detect input format
+
             try:
                 # Create "converted" folder in the same directory as the input file
                 input_dir = os.path.dirname(file)
